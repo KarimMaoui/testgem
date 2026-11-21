@@ -214,7 +214,7 @@
     opacity: 0;
     transition: transform .6s var(--out), opacity .4s, background .3s, border-color .3s;
   }
-  .node::before { content: ""; position: absolute; inset: -12px; } /* click area */
+  .node::before { content: ""; position: absolute; inset: -14px -14px -30px; } /* bigger click area, includes the numeral */
   .node.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   .node.solved { background: var(--ink); }
   .node.current { background: var(--accent); border-color: var(--accent); transform: translate(-50%, -50%) scale(1.6); }
@@ -229,9 +229,8 @@
   .node:hover span { color: var(--ink); }
   .node.visible:hover { transform: translate(-50%, -50%) scale(1.5); border-color: var(--accent); }
   .node.current:hover { transform: translate(-50%, -50%) scale(1.6); }
-  .node::before { inset: -14px -14px -30px; } /* bigger click area, includes the numeral */
 
-  /* ---------- Plate (image pop-up) ---------- */
+  /* ---------- Plate (image / video pop-up) ---------- */
   .modal {
     position: fixed; inset: 0; z-index: 30;
     display: grid; place-items: center;
@@ -249,8 +248,10 @@
   }
   .modal.open .holo { transform: none; opacity: 1; }
   .img-wrap { position: relative; overflow: hidden; background: var(--paper-2); }
-  .img-wrap img { display: block; width: 100%; max-height: 62vh; object-fit: cover; }
-  .modal.open .img-wrap img { animation: reveal 1.4s var(--out) .15s both; }
+  .img-wrap img,
+  .img-wrap video { display: block; width: 100%; max-height: 50vh; object-fit: cover; }
+  .modal.open .img-wrap img,
+  .modal.open .img-wrap video { animation: reveal 1.4s var(--out) .15s both; }
   @keyframes reveal {
     from { clip-path: inset(0 100% 0 0); transform: scale(1.05); }
     to   { clip-path: inset(0 0 0 0); transform: none; }
@@ -258,12 +259,11 @@
   .beam { display: none; }
   .caption {
     display: flex; justify-content: space-between; align-items: baseline; gap: 1rem;
-    padding: .9rem 0 1.6rem; border-bottom: 1px solid var(--rule); margin-bottom: 1.6rem;
+    padding: .9rem 0 1.2rem; border-bottom: 1px solid var(--rule); margin-bottom: 1.2rem;
   }
   .caption .tag { margin: 0; }
   .caption i { font-family: var(--display); font-size: 1.2rem; color: var(--ink-soft); }
   .holo .stack { justify-content: flex-end; }
-  .caption { padding-bottom: 1.2rem; margin-bottom: 1.2rem; }
   .plate-text {
     margin: 0 0 1.8rem; max-width: 52ch;
     font-size: 1.2rem; line-height: 1.6; color: var(--ink);
@@ -275,17 +275,15 @@
   }
   .modal.open .plate-text { animation: textIn 1s var(--out) .7s both; }
   @keyframes textIn { from { opacity: 0; transform: translateY(10px); } }
-  .img-wrap img { max-height: 50vh; }
 
   @media (max-width: 760px) {
     .hud { left: 1.25rem; right: 1.25rem; }
-    .stage { padding: 4.5rem 1.5rem 7rem; }
+    .stage { padding: 4.5rem 1.5rem 7rem; overflow-y: auto; place-items: start center; }
     .panel { grid-template-columns: 1fr; gap: 1.5rem; }
     .numeral { text-align: left; font-size: 6.5rem; }
     .numeral small { margin-top: .6rem; }
     .body { border-left: 0; border-top: 1px solid var(--rule); padding: 1.5rem 0 0; }
     .frise { padding: 0 1.25rem; }
-    .stage { overflow-y: auto; place-items: start center; }
     .options { grid-template-columns: 1fr; }
     .option { min-height: 220px; border-left: 0; border-top: 1px solid var(--paper); }
     .option:first-child { border-top: 0; }
@@ -322,7 +320,11 @@
 
 <div class="modal" id="modal" role="dialog" aria-modal="true">
   <figure class="holo">
-    <div class="img-wrap"><img id="modal-img" alt=""><div class="beam"></div></div>
+    <div class="img-wrap">
+      <img id="modal-img" alt="">
+      <video id="modal-video" controls playsinline></video>
+      <div class="beam"></div>
+    </div>
     <figcaption class="caption">
       <div class="tag" id="modal-tag">Plate I</div>
       <i id="modal-cap">Chapter one</i>
@@ -334,8 +336,8 @@
 
 <script>
   /* =========================================================
-     CONFIGURATION — edit the passwords and images here.
-     image: URL or local path (e.g. "images/etape1.jpg")
+     CONFIGURATION — edit the passwords, images and videos here.
+     image / video: URL or local path (e.g. "videos/chapitre1.mp4")
      ========================================================= */
   const PASSWORDS = [
     "Egypt",
@@ -360,6 +362,13 @@
     image: `https://picsum.photos/seed/etape${i + 1}/1000/600`,
     text: `Description of the photo for chapter ${i + 1}. Replace this with your own words.`,
   }));
+
+  /* Chapter 1: video + custom romantic text */
+  STEPS[0] = {
+    password: PASSWORDS[0],
+    video: "videos/chapitre1.mp4",
+    text: "September 2, 2023 — the day two souls met, and the quiet beginning of everything we were meant to become.",
+  };
 
   /* Choices shown after the epilogue (placeholders for now) */
   const CHOICES = [
@@ -403,7 +412,7 @@
     b.addEventListener("click", () => {
       if (i > solved) return;                               // not unlocked yet
       if (i === current && !panel.dataset.final) return;    // already on this chapter
-      if (modal.classList.contains("open")) modal.classList.remove("open");
+      if (modal.classList.contains("open")) closeModal(false);
       travel(i);                                            // go back to that chapter
     });
     frise.appendChild(b);
@@ -551,17 +560,34 @@
     }, 1800);
   }
 
-  /* ============ Plate (image) ============ */
-  const modal = $("modal"), modalImg = $("modal-img"), modalBtn = $("modal-btn");
+  /* ============ Plate (image / video) ============ */
+  const modal = $("modal"),
+        modalImg = $("modal-img"),
+        modalVideo = $("modal-video"),
+        modalBtn = $("modal-btn");
   let modalFor = null;
 
   function openModal(i) {
     modalFor = i;
-    modalImg.src = STEPS[i].image;
-    modalImg.alt = `Chapter ${i + 1}`;
+    const step = STEPS[i];
+
+    if (step.video) {
+      modalImg.style.display = "none";
+      modalVideo.style.display = "block";
+      modalVideo.src = step.video;
+      modalVideo.currentTime = 0;
+      modalVideo.play().catch(() => {});
+    } else {
+      modalVideo.pause();
+      modalVideo.style.display = "none";
+      modalImg.style.display = "block";
+      modalImg.src = step.image;
+      modalImg.alt = `Chapter ${i + 1}`;
+    }
+
     $("modal-tag").textContent = `Plate ${roman(i + 1)}`;
     $("modal-cap").textContent = `Chapter ${word(i + 1)}`;
-    $("modal-text").textContent = STEPS[i].text || "";
+    $("modal-text").textContent = step.text || "";
     const isLast = i === N - 1;
     modalBtn.innerHTML = isLast
       ? (panel.dataset.final === "1" ? "Close" : `Read the epilogue ${arrow}`)
@@ -572,6 +598,7 @@
   }
 
   function closeModal(advance) {
+    modalVideo.pause();
     modal.classList.remove("open");
     if (!advance || modalFor === null) return;
     const i = modalFor;
