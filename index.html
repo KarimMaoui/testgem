@@ -337,8 +337,26 @@
      CONFIGURATION — edit the passwords and images here.
      image: URL or local path (e.g. "images/etape1.jpg")
      ========================================================= */
-  const STEPS = Array.from({ length: 15 }, (_, i) => ({
-    password: `Fraise ${i + 1}`,
+  const PASSWORDS = [
+    "Egypt",
+    "Path",
+    "Memories",
+    "Planes",
+    "Magician",
+    "Sacha",
+    "Stylist",
+    "Paulinal Paulinus",
+    "Tower",
+    "Yellow fever",
+    "test",
+    "test",
+    "test",
+    "test",
+    "test",
+  ];
+
+  const STEPS = PASSWORDS.map((password, i) => ({
+    password,
     image: `https://picsum.photos/seed/etape${i + 1}/1000/600`,
     text: `Description of the photo for chapter ${i + 1}. Replace this with your own words.`,
   }));
