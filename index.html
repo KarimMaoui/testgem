@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Our Story</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400;1,6..96,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #efe8dc;
+    --paper-2: #e7dece;
+    --ink: #1c1916;
+    --ink-soft: rgba(28,25,22,.62);
+    --ink-faint: rgba(28,25,22,.32);
+    --rule: rgba(28,25,22,.18);
+    --accent: #7b2230;
+    --display: "Bodoni Moda", "Didot", serif;
+    --text: "EB Garamond", Garamond, Georgia, serif;
+    --out: cubic-bezier(.16,1,.3,1);
+    --in: cubic-bezier(.6,0,.8,.2);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--text);
+    font-size: 19px;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent); color: var(--paper); }
+
+  /* ---------- Paper ---------- */
+  .paper {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse 120% 90% at 50% 40%, transparent 55%, rgba(120,95,60,.14) 100%);
+  }
+  .grain {
+    position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: .07; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .shade { /* shadow that sweeps as the page turns */
+    position: fixed; inset: 0; z-index: 40; pointer-events: none;
+    background: linear-gradient(90deg, rgba(28,25,22,.18), transparent 60%);
+    opacity: 0;
+  }
+  .shade.go { animation: shade 1s ease-out; }
+  @keyframes shade { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* ---------- Running header ---------- */
+  .hud {
+    position: fixed; top: 1.6rem; left: 2.5rem; right: 2.5rem; z-index: 5;
+    display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1.5rem;
+    font-size: .8rem; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-soft);
+  }
+  .hud::after { content: ""; grid-column: 2; grid-row: 1; height: 1px; background: var(--rule); }
+  .hud > :last-child { grid-column: 3; }
+  .hud b { color: var(--ink); font-weight: 500; }
+
+  /* ---------- Page ---------- */
+  .stage {
+    position: fixed; inset: 0; z-index: 10;
+    display: grid; place-items: center;
+    padding: 5rem 2.5rem 8rem;
+    perspective: 1800px;
+  }
+  .panel {
+    width: min(960px, 100%);
+    display: grid; grid-template-columns: 5fr 7fr; gap: 4rem; align-items: center;
+    transform-style: preserve-3d;
+  }
+  .numeral {
+    font-family: var(--display); font-style: italic; font-weight: 400;
+    font-size: clamp(7rem, 17vw, 13rem); line-height: .85;
+    color: var(--accent);
+    text-align: right;
+    font-variation-settings: "opsz" 96;
+    letter-spacing: -.02em;
+  }
+  .numeral small {
+    display: block; margin-top: 1.2rem;
+    font-family: var(--text); font-style: normal; font-size: .8rem; letter-spacing: .3em;
+    text-transform: uppercase; color: var(--ink-soft);
+  }
+  .body { border-left: 1px solid var(--rule); padding-left: 3rem; }
+  .tag { font-size: .78rem; letter-spacing: .3em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 1.4rem; }
+  .title {
+    font-family: var(--display); font-weight: 400; font-style: normal;
+    font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.05; letter-spacing: -.01em;
+    font-variation-settings: "opsz" 72;
+  }
+  .title em { font-style: italic; }
+  .sub { color: var(--ink-soft); margin: 1.2rem 0 2.4rem; font-size: 1.15rem; font-style: italic; line-height: 1.5; max-width: 30ch; }
+
+  .field { margin-bottom: 1.6rem; }
+  .field input {
+    width: 100%;
+    padding: .4rem 0 .6rem;
+    background: transparent;
+    border: 0; border-bottom: 1px solid var(--ink);
+    border-radius: 0;
+    color: var(--ink);
+    font-family: var(--display); font-style: italic; font-size: 1.9rem;
+    outline: none;
+    transition: border-color .3s;
+  }
+  .field input::placeholder { color: var(--ink-faint); }
+  .field input:focus { border-bottom-color: var(--accent); }
+
+  .stack { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: .9rem;
+    padding: 1rem 1.6rem;
+    border: 1px solid var(--ink);
+    background: var(--ink); color: var(--paper);
+    font-family: var(--text); font-size: .8rem; letter-spacing: .28em; text-transform: uppercase;
+    cursor: pointer;
+    transition: background .3s, border-color .3s, color .3s;
+  }
+  .btn .arrow { display: inline-block; transition: transform .4s var(--out); }
+  .btn:hover { background: var(--accent); border-color: var(--accent); }
+  .btn:hover .arrow { transform: translateX(6px); }
+  .btn:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
+  .btn.alt { background: transparent; color: var(--ink); }
+  .btn.alt:hover { background: transparent; color: var(--accent); border-color: var(--accent); }
+
+  /* ---------- Choices (after the epilogue) ---------- */
+  .panel.choices { display: block; }
+  .choices-head { text-align: center; margin-bottom: 2.6rem; }
+  .choices-head .title { margin-top: .2rem; }
+  .options { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); }
+  .option {
+    position: relative; overflow: hidden; isolation: isolate;
+    display: flex; flex-direction: column; align-items: flex-start; text-align: left;
+    min-height: 380px; padding: 1.8rem 1.8rem 1.6rem;
+    background: var(--ink); color: var(--paper);
+    border: 0; border-left: 1px solid var(--paper);
+    font-family: var(--text); cursor: pointer;
+    transition: opacity .45s var(--out);
+  }
+  .option:first-child { border-left: 0; }
+  .option > span { position: relative; z-index: 2; }
+  .option .o-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background-size: cover; background-position: center;
+    filter: grayscale(.35) sepia(.18) contrast(.95);
+    transform: scale(1.02);
+    transition: transform 1.4s var(--out), filter .6s;
+  }
+  .option::after { /* veil for legibility */
+    content: ""; position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(to top, rgba(28,25,22,.88) 0%, rgba(28,25,22,.35) 55%, rgba(28,25,22,.55) 100%);
+    transition: background .6s;
+  }
+  .option .o-num { font-family: var(--display); font-style: italic; font-size: 3rem; line-height: 1; color: var(--paper); }
+  .option .o-label { margin-top: .9rem; font-size: .75rem; letter-spacing: .3em; text-transform: uppercase; color: rgba(239,232,220,.75); }
+  .option .o-city { margin-top: auto; font-family: var(--display); font-size: clamp(1.8rem, 3.2vw, 2.6rem); line-height: 1.05; letter-spacing: -.01em; }
+  .option .o-country { margin-top: .35rem; font-style: italic; font-size: 1.1rem; color: rgba(239,232,220,.8); }
+  .option .o-coord { margin-top: 1.4rem; padding-top: .8rem; width: 100%; border-top: 1px solid rgba(239,232,220,.3); font-size: .72rem; letter-spacing: .2em; color: rgba(239,232,220,.7); display: flex; justify-content: space-between; }
+  .option .o-coord .arrow { transition: transform .4s var(--out); }
+  .option:hover .o-bg, .option:focus-visible .o-bg { transform: scale(1.08); filter: grayscale(0) sepia(0) contrast(1); }
+  .option:hover::after, .option:focus-visible::after { background: linear-gradient(to top, rgba(28,25,22,.8) 0%, rgba(28,25,22,.1) 60%, rgba(28,25,22,.35) 100%); }
+  .option:focus-visible { outline: none; }
+  .option:hover .o-coord .arrow { transform: translateX(6px); }
+  .option.selected .o-bg { filter: none; transform: scale(1.08); }
+  .option.selected::after { background: linear-gradient(to top, rgba(123,34,48,.92) 0%, rgba(123,34,48,.35) 60%, rgba(28,25,22,.35) 100%); }
+  .options.has-choice .option:not(.selected) { opacity: .4; }
+  .choices-foot { display: flex; justify-content: space-between; align-items: baseline; margin-top: 1.4rem; min-height: 1.6rem; }
+  .linkback { background: none; border: 0; padding: 0; font-family: var(--text); font-size: .78rem; letter-spacing: .28em; text-transform: uppercase; color: var(--ink-soft); cursor: pointer; }
+  .linkback:hover { color: var(--accent); }
+  .choice-msg { font-style: italic; font-size: 1.1rem; }
+
+  .status { min-height: 1.6rem; margin-top: 1.2rem; font-style: italic; font-size: 1.1rem; }
+  .status.ok  { color: var(--ink); }
+  .status.err { color: var(--accent); }
+
+  .panel.denied .field input { animation: denied .45s; border-bottom-color: var(--accent); }
+  @keyframes denied {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    50% { transform: translateX(6px); }
+    75% { transform: translateX(-3px); }
+  }
+  .panel.granted .numeral { animation: ink .9s var(--out); }
+  @keyframes ink { 0% { color: var(--ink); } 100% { color: var(--accent); } }
+
+  /* Page turn */
+  .panel.exit-fwd  { transform-origin: left center;  animation: turnFwd .8s var(--in) forwards; }
+  .panel.exit-back { transform-origin: right center; animation: turnBack .8s var(--in) forwards; }
+  .panel.enter-fwd  { animation: enterFwd 1s var(--out) both; }
+  .panel.enter-back { animation: enterBack 1s var(--out) both; }
+  @keyframes turnFwd  { to { transform: rotateY(-80deg) translateX(-8%); opacity: 0; } }
+  @keyframes turnBack { to { transform: rotateY(80deg) translateX(8%); opacity: 0; } }
+  @keyframes enterFwd  { from { transform: translateX(60px); opacity: 0; } }
+  @keyframes enterBack { from { transform: translateX(-60px); opacity: 0; } }
+
+  /* ---------- Table of contents (timeline) ---------- */
+  .frise { position: fixed; left: 0; right: 0; bottom: 2.4rem; z-index: 20; padding: 0 2.5rem; pointer-events: none; }
+  .frise .node { pointer-events: auto; }
+  .frise-inner { position: relative; max-width: 960px; margin: 0 auto; height: 44px; }
+  .rail, .rail-fill { position: absolute; top: 14px; left: 0; height: 1px; }
+  .rail { right: 0; background: var(--rule); }
+  .rail-fill { width: 0; background: var(--accent); transition: width 1.2s var(--out); }
+  .node {
+    position: absolute; top: 14px;
+    width: 7px; height: 7px;
+    transform: translate(-50%, -50%) scale(0);
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    border-radius: 50%;
+    cursor: pointer; padding: 0;
+    opacity: 0;
+    transition: transform .6s var(--out), opacity .4s, background .3s, border-color .3s;
+  }
+  .node::before { content: ""; position: absolute; inset: -12px; } /* click area */
+  .node.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .node.solved { background: var(--ink); }
+  .node.current { background: var(--accent); border-color: var(--accent); transform: translate(-50%, -50%) scale(1.6); }
+  .node span {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%) scale(.625);
+    transform-origin: top center;
+    font-family: var(--display); font-style: italic; font-size: 1.3rem; color: var(--ink-faint);
+    white-space: nowrap; transition: color .3s;
+  }
+  .node.solved span { color: var(--ink-soft); }
+  .node.current span { color: var(--accent); }
+  .node:hover span { color: var(--ink); }
+  .node.visible:hover { transform: translate(-50%, -50%) scale(1.5); border-color: var(--accent); }
+  .node.current:hover { transform: translate(-50%, -50%) scale(1.6); }
+  .node::before { inset: -14px -14px -30px; } /* bigger click area, includes the numeral */
+
+  /* ---------- Plate (image pop-up) ---------- */
+  .modal {
+    position: fixed; inset: 0; z-index: 30;
+    display: grid; place-items: center;
+    padding: 2rem;
+    background: rgba(239,232,220,.97);
+    opacity: 0; pointer-events: none;
+    transition: opacity .45s;
+    overflow-y: auto;
+  }
+  .modal.open { opacity: 1; pointer-events: auto; }
+  .holo {
+    width: min(760px, 100%);
+    transform: translateY(24px); opacity: 0;
+    transition: transform .9s var(--out), opacity .6s;
+  }
+  .modal.open .holo { transform: none; opacity: 1; }
+  .img-wrap { position: relative; overflow: hidden; background: var(--paper-2); }
+  .img-wrap img { display: block; width: 100%; max-height: 62vh; object-fit: cover; }
+  .modal.open .img-wrap img { animation: reveal 1.4s var(--out) .15s both; }
+  @keyframes reveal {
+    from { clip-path: inset(0 100% 0 0); transform: scale(1.05); }
+    to   { clip-path: inset(0 0 0 0); transform: none; }
+  }
+  .beam { display: none; }
+  .caption {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 1rem;
+    padding: .9rem 0 1.6rem; border-bottom: 1px solid var(--rule); margin-bottom: 1.6rem;
+  }
+  .caption .tag { margin: 0; }
+  .caption i { font-family: var(--display); font-size: 1.2rem; color: var(--ink-soft); }
+  .holo .stack { justify-content: flex-end; }
+  .caption { padding-bottom: 1.2rem; margin-bottom: 1.2rem; }
+  .plate-text {
+    margin: 0 0 1.8rem; max-width: 52ch;
+    font-size: 1.2rem; line-height: 1.6; color: var(--ink);
+  }
+  .plate-text:empty { display: none; }
+  .plate-text::first-letter {
+    float: left; margin: .1rem .5rem 0 0;
+    font-family: var(--display); font-size: 3.4rem; line-height: .8; color: var(--accent);
+  }
+  .modal.open .plate-text { animation: textIn 1s var(--out) .7s both; }
+  @keyframes textIn { from { opacity: 0; transform: translateY(10px); } }
+  .img-wrap img { max-height: 50vh; }
+
+  @media (max-width: 760px) {
+    .hud { left: 1.25rem; right: 1.25rem; }
+    .stage { padding: 4.5rem 1.5rem 7rem; }
+    .panel { grid-template-columns: 1fr; gap: 1.5rem; }
+    .numeral { text-align: left; font-size: 6.5rem; }
+    .numeral small { margin-top: .6rem; }
+    .body { border-left: 0; border-top: 1px solid var(--rule); padding: 1.5rem 0 0; }
+    .frise { padding: 0 1.25rem; }
+    .stage { overflow-y: auto; place-items: start center; }
+    .options { grid-template-columns: 1fr; }
+    .option { min-height: 220px; border-left: 0; border-top: 1px solid var(--paper); }
+    .option:first-child { border-top: 0; }
+    .option .o-city { margin-top: 1rem; }
+    .node span { display: none; }
+    .node.current span { display: block; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="paper"></div>
+<div class="shade" id="flash"></div>
+<div class="grain"></div>
+
+<header class="hud">
+  <div>Our Story</div>
+  <div>Chapter <b id="hud-step">I</b> of <span id="hud-total">XV</span></div>
+</header>
+
+<main class="stage">
+  <div class="panel" id="panel"></div>
+</main>
+
+<footer class="frise">
+  <div class="frise-inner" id="frise">
+    <div class="rail"></div>
+    <div class="rail-fill" id="rail-fill"></div>
+  </div>
+</footer>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true">
+  <figure class="holo">
+    <div class="img-wrap"><img id="modal-img" alt=""><div class="beam"></div></div>
+    <figcaption class="caption">
+      <div class="tag" id="modal-tag">Plate I</div>
+      <i id="modal-cap">Chapter one</i>
+    </figcaption>
+    <p class="plate-text" id="modal-text"></p>
+    <div class="stack"><button class="btn" id="modal-btn">Turn the page</button></div>
+  </figure>
+</div>
+
+<script>
+  /* =========================================================
+     CONFIGURATION — edit the passwords and images here.
+     image: URL or local path (e.g. "images/etape1.jpg")
+     ========================================================= */
+  const STEPS = Array.from({ length: 15 }, (_, i) => ({
+    password: `Fraise ${i + 1}`,
+    image: `https://picsum.photos/seed/etape${i + 1}/1000/600`,
+    text: `Description of the photo for chapter ${i + 1}. Replace this with your own words.`,
+  }));
+
+  /* Choices shown after the epilogue (placeholders for now) */
+  const CHOICES = [
+    { city: "Lisbon",       country: "Portugal",  coord: "38.72° N · 9.14° W",
+      image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Lisbon_%2836831596786%29_%28cropped%29.jpg/1280px-Lisbon_%2836831596786%29_%28cropped%29.jpg" },
+    { city: "Kyoto",        country: "Japan",     coord: "35.01° N · 135.77° E",
+      image: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Kiyomizu-dera%2C_Kyoto%2C_November_2016_-02.jpg/1280px-Kiyomizu-dera%2C_Kyoto%2C_November_2016_-02.jpg" },
+    { city: "Buenos Aires", country: "Argentina", coord: "34.60° S · 58.38° W",
+      image: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Puerto_Madero%2C_Buenos_Aires_%2840689219792%29_%28cropped%29.jpg/1280px-Puerto_Madero%2C_Buenos_Aires_%2840689219792%29_%28cropped%29.jpg" },
+  ];
+
+  /* Add ?reset to the URL to start again from chapter 1 */
+  const STORAGE_KEY = "sequence-progress";
+  if (new URLSearchParams(location.search).has("reset")) localStorage.removeItem(STORAGE_KEY);
+
+  const N = STEPS.length;
+  let solved = Math.min(parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10) || 0, N);
+  let current = Math.min(solved, N - 1);
+  let busy = false;
+
+  const $ = id => document.getElementById(id);
+  const normalize = s => s.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/\s+/g, "");
+  const roman = n => {
+    const map = [[1000,"M"],[900,"CM"],[500,"D"],[400,"CD"],[100,"C"],[90,"XC"],[50,"L"],[40,"XL"],[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];
+    let r = ""; for (const [v, s] of map) while (n >= v) { r += s; n -= v; } return r;
+  };
+  const WORDS = ["one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen","twenty"];
+  const word = n => WORDS[n - 1] || String(n);
+  const arrow = `<span class="arrow">→</span>`;
+  $("hud-total").textContent = roman(N);
+
+  /* ============ Table of contents ============ */
+  const frise = $("frise"), railFill = $("rail-fill");
+  const nodes = STEPS.map((_, i) => {
+    const b = document.createElement("button");
+    b.className = "node";
+    b.style.left = `${(i / (N - 1)) * 100}%`;
+    b.setAttribute("aria-label", `Chapter ${i + 1}`);
+    b.innerHTML = `<span>${roman(i + 1)}</span>`;
+    b.title = `Chapter ${roman(i + 1)}`;
+    b.addEventListener("click", () => {
+      if (i > solved) return;                               // not unlocked yet
+      if (i === current && !panel.dataset.final) return;    // already on this chapter
+      if (modal.classList.contains("open")) modal.classList.remove("open");
+      travel(i);                                            // go back to that chapter
+    });
+    frise.appendChild(b);
+    return b;
+  });
+
+  function renderFrise() {
+    const reached = Math.min(solved, N - 1);
+    nodes.forEach((n, i) => {
+      n.classList.toggle("visible", i <= reached);
+      n.classList.toggle("solved", i < solved);
+      n.classList.toggle("current", i === current);
+    });
+    railFill.style.width = `${(reached / (N - 1)) * 100}%`;
+    $("hud-step").textContent = roman(current + 1);
+  }
+
+  /* ============ Page ============ */
+  const panel = $("panel");
+
+  function layout(numeral, label, inner) {
+    return `<div class="numeral">${numeral}<small>${label}</small></div><div class="body">${inner}</div>`;
+  }
+
+  function renderPanel() {
+    panel.className = "panel";
+    const n = current + 1;
+    const title = `<h1 class="title">Chapter <em>${word(n)}</em></h1>`;
+
+    if (solved === N && current === N - 1 && panel.dataset.final === "1") {
+      panel.innerHTML = layout("Fin", "Epilogue", `
+        <div class="tag">The story is complete</div>
+        <h1 class="title">${word(N).charAt(0).toUpperCase() + word(N).slice(1)} chapters, <em>one story.</em></h1>
+        <p class="sub">Every page has been turned.</p>
+        <div class="stack"><button class="btn" id="b-next">View the next step ${arrow}</button></div>`);
+      $("b-next").onclick = () => travel(current, "2");
+      return;
+    }
+
+    if (panel.dataset.final === "2") {
+      panel.classList.add("choices");
+      panel.innerHTML = `
+        <div class="choices-head">
+          <div class="tag">The next step</div>
+          <h1 class="title">Where do we go <em>from here?</em></h1>
+        </div>
+        <div class="options" id="options">
+          ${CHOICES.map((c, k) => `
+            <button class="option" data-k="${k}">
+              <i class="o-bg" style="background-image:url('${c.image}')"></i>
+              <span class="o-num">${roman(k + 1)}</span>
+              <span class="o-label">Option ${k + 1}</span>
+              <span class="o-city">${c.city}</span>
+              <span class="o-country">${c.country}</span>
+              <span class="o-coord"><span>${c.coord}</span>${arrow}</span>
+            </button>`).join("")}
+        </div>
+        <div class="choices-foot">
+          <button class="linkback" id="b-back">← Back to the epilogue</button>
+          <span class="choice-msg" id="choice-msg"></span>
+        </div>`;
+      const opts = $("options");
+      opts.querySelectorAll(".option").forEach(o => o.onclick = () => {
+        opts.classList.add("has-choice");
+        opts.querySelectorAll(".option").forEach(x => x.classList.toggle("selected", x === o));
+        $("choice-msg").textContent = `${CHOICES[o.dataset.k].city}, then.`;
+      });
+      $("b-back").onclick = () => travel(current, "1");
+      return;
+    }
+
+    if (current < solved) {
+      panel.innerHTML = layout(roman(n), "Chapter", `
+        <div class="tag">Already read</div>
+        ${title}
+        <p class="sub">This page has already been opened.</p>
+        <div class="stack">
+          ${current < N - 1
+            ? `<button class="btn" id="b-next">Turn the page ${arrow}</button>`
+            : `<button class="btn" id="b-next">Read the epilogue ${arrow}</button>`}
+          <button class="btn alt" id="b-view">View the plate again</button>
+        </div>`);
+      $("b-view").onclick = () => openModal(current);
+      $("b-next").onclick = () => current < N - 1 ? travel(current + 1) : travel(current, true);
+      return;
+    }
+
+    panel.innerHTML = layout(roman(n), "Chapter", `
+      <div class="tag">Sealed page</div>
+      ${title}
+      <p class="sub">Enter the password to turn the page.</p>
+      <form id="f" autocomplete="off">
+        <div class="field"><input id="pw" type="text" placeholder="Password" aria-label="Password" spellcheck="false"></div>
+        <div class="stack"><button class="btn" type="submit">Open ${arrow}</button></div>
+      </form>
+      <div class="status" id="status"></div>`);
+
+    $("f").onsubmit = e => {
+      e.preventDefault();
+      if (busy) return;
+      const input = $("pw"), status = $("status");
+      if (normalize(input.value) === normalize(STEPS[current].password)) {
+        busy = true;
+        input.disabled = true;
+        status.className = "status ok";
+        status.textContent = "That's the one.";
+        panel.classList.add("granted");
+        solved = current + 1;
+        localStorage.setItem(STORAGE_KEY, solved);
+        renderFrise();
+        setTimeout(() => { busy = false; openModal(current); }, 800);
+      } else {
+        status.className = "status err";
+        status.textContent = "That's not the word.";
+        panel.classList.remove("denied");
+        void panel.offsetWidth;
+        panel.classList.add("denied");
+        input.select();
+      }
+    };
+  }
+
+  /* ============ Turn the page ============ */
+  function travel(to, final = false) {
+    if (busy || to < 0 || to >= N || to > solved) return;
+    busy = true;
+    const fwd = to >= current;
+    panel.classList.add(fwd ? "exit-fwd" : "exit-back");
+    const shade = $("flash");
+    shade.style.transform = fwd ? "none" : "scaleX(-1)";
+    shade.classList.remove("go"); void shade.offsetWidth; shade.classList.add("go");
+
+    setTimeout(() => {
+      current = to;
+      panel.dataset.final = final === true ? "1" : (final || "");
+      renderPanel();
+      renderFrise();
+      panel.classList.add(fwd ? "enter-fwd" : "enter-back");
+    }, 800);
+
+    setTimeout(() => {
+      panel.classList.remove("enter-fwd", "enter-back");
+      busy = false;
+      $("pw")?.focus();
+    }, 1800);
+  }
+
+  /* ============ Plate (image) ============ */
+  const modal = $("modal"), modalImg = $("modal-img"), modalBtn = $("modal-btn");
+  let modalFor = null;
+
+  function openModal(i) {
+    modalFor = i;
+    modalImg.src = STEPS[i].image;
+    modalImg.alt = `Chapter ${i + 1}`;
+    $("modal-tag").textContent = `Plate ${roman(i + 1)}`;
+    $("modal-cap").textContent = `Chapter ${word(i + 1)}`;
+    $("modal-text").textContent = STEPS[i].text || "";
+    const isLast = i === N - 1;
+    modalBtn.innerHTML = isLast
+      ? (panel.dataset.final === "1" ? "Close" : `Read the epilogue ${arrow}`)
+      : `Turn the page ${arrow}`;
+    modal.classList.remove("open"); void modal.offsetWidth;
+    modal.classList.add("open");
+    modalBtn.focus();
+  }
+
+  function closeModal(advance) {
+    modal.classList.remove("open");
+    if (!advance || modalFor === null) return;
+    const i = modalFor;
+    if (i < N - 1 && i < solved) setTimeout(() => travel(i + 1), 300);
+    else if (i === N - 1 && solved === N && panel.dataset.final !== "1") setTimeout(() => travel(i, true), 300);
+  }
+
+  modalBtn.onclick = () => closeModal(true);
+  modal.addEventListener("click", e => { if (e.target === modal) closeModal(false); });
+  addEventListener("keydown", e => { if (e.key === "Escape" && modal.classList.contains("open")) closeModal(false); });
+
+  /* ============ Start ============ */
+  panel.dataset.final = solved === N ? "1" : "";
+  renderPanel();
+  renderFrise();
+  panel.classList.add("enter-fwd");
+  setTimeout(() => { panel.classList.remove("enter-fwd"); $("pw")?.focus(); }, 1000);
+</script>
+</body>
+</html>
