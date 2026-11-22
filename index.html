@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400;1,6..96,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
     --paper: #efe8dc;
@@ -214,7 +216,7 @@
     opacity: 0;
     transition: transform .6s var(--out), opacity .4s, background .3s, border-color .3s;
   }
-  .node::before { content: ""; position: absolute; inset: -14px -14px -30px; } /* bigger click area, includes the numeral */
+  .node::before { content: ""; position: absolute; inset: -14px -14px -30px; } /* click area */
   .node.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   .node.solved { background: var(--ink); }
   .node.current { background: var(--accent); border-color: var(--accent); transform: translate(-50%, -50%) scale(1.6); }
@@ -230,7 +232,7 @@
   .node.visible:hover { transform: translate(-50%, -50%) scale(1.5); border-color: var(--accent); }
   .node.current:hover { transform: translate(-50%, -50%) scale(1.6); }
 
-  /* ---------- Plate (image / video pop-up) ---------- */
+  /* ---------- Plate (image pop-up) ---------- */
   .modal {
     position: fixed; inset: 0; z-index: 30;
     display: grid; place-items: center;
@@ -247,19 +249,9 @@
     transition: transform .9s var(--out), opacity .6s;
   }
   .modal.open .holo { transform: none; opacity: 1; }
-  .img-wrap { position: relative; overflow: hidden; background: transparent; }
-  .img-wrap img,
-  .img-wrap video {
-    display: block;
-    max-width: 100%;
-    max-height: 58vh;
-    width: auto;
-    height: auto;
-    margin: 0 auto;
-    object-fit: contain;
-  }
-  .modal.open .img-wrap img,
-  .modal.open .img-wrap video { animation: reveal 1.4s var(--out) .15s both; }
+  .img-wrap { position: relative; overflow: hidden; background: var(--paper-2); }
+  .img-wrap img { display: block; width: 100%; max-height: 50vh; object-fit: cover; }
+  .modal.open .img-wrap img { animation: reveal 1.4s var(--out) .15s both; }
   @keyframes reveal {
     from { clip-path: inset(0 100% 0 0); transform: scale(1.05); }
     to   { clip-path: inset(0 0 0 0); transform: none; }
@@ -284,6 +276,28 @@
   .modal.open .plate-text { animation: textIn 1s var(--out) .7s both; }
   @keyframes textIn { from { opacity: 0; transform: translateY(10px); } }
 
+  /* ---------- Interactive Map (Chapter 11) ---------- */
+  .map-wrap { display: none; position: relative; background: var(--paper-2); border: 1px solid var(--rule); }
+  .map-wrap.active { display: block; }
+  #modal-map { width: 100%; height: 48vh; min-height: 320px; background: var(--paper-2); }
+  #modal-map .leaflet-tile-pane { filter: sepia(.35) contrast(.95) brightness(.97); }
+  .map-bar {
+    display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+    padding: .85rem 1.2rem; background: var(--paper); border-top: 1px solid var(--rule);
+  }
+  .map-info { font-family: var(--display); font-size: 1.25rem; color: var(--ink); }
+  .map-info small {
+    display: block; font-family: var(--text); font-size: .72rem;
+    letter-spacing: .25em; text-transform: uppercase; color: var(--ink-soft);
+  }
+  .map-controls { display: flex; gap: .6rem; }
+  .map-controls .btn { padding: .6rem 1.1rem; font-size: .72rem; }
+  .map-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--paper);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+
   @media (max-width: 760px) {
     .hud { left: 1.25rem; right: 1.25rem; }
     .stage { padding: 4.5rem 1.5rem 7rem; overflow-y: auto; place-items: start center; }
@@ -298,6 +312,7 @@
     .option .o-city { margin-top: 1rem; }
     .node span { display: none; }
     .node.current span { display: block; }
+    .map-bar { flex-direction: column; align-items: flex-start; }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -328,10 +343,19 @@
 
 <div class="modal" id="modal" role="dialog" aria-modal="true">
   <figure class="holo">
-    <div class="img-wrap">
-      <img id="modal-img" alt="">
-      <video id="modal-video" controls playsinline></video>
-      <div class="beam"></div>
+    <div class="img-wrap" id="modal-img-wrap"><img id="modal-img" alt=""><div class="beam"></div></div>
+    <div class="map-wrap" id="modal-map-wrap">
+      <div id="modal-map"></div>
+      <div class="map-bar">
+        <div class="map-info">
+          <small id="map-step-label">Stop I of VIII</small>
+          <span id="map-city-name">Bangkok, Thailand</span>
+        </div>
+        <div class="map-controls">
+          <button class="btn alt" id="map-replay" type="button">Replay</button>
+          <button class="btn" id="map-next" type="button">Next stop →</button>
+        </div>
+      </div>
     </div>
     <figcaption class="caption">
       <div class="tag" id="modal-tag">Plate I</div>
@@ -344,8 +368,8 @@
 
 <script>
   /* =========================================================
-     CONFIGURATION — edit the passwords, images and videos here.
-     image / video: URL or local path (e.g. "videos/chapitre1.mp4")
+     CONFIGURATION — edit the passwords, images and texts here.
+     image: URL or local path (e.g. "images/chapitre6.jpg")
      ========================================================= */
   const PASSWORDS = [
     "Egypt",
@@ -353,12 +377,12 @@
     "Memories",
     "Planes",
     "Magician",
-    "Loving",
     "Sacha",
     "Stylist",
     "Paulinal Paulinus",
     "Tower",
     "Yellow fever",
+    "test",
     "test",
     "test",
     "test",
@@ -371,54 +395,11 @@
     text: `Description of the photo for chapter ${i + 1}. Replace this with your own words.`,
   }));
 
-  /* Chapter 1: video + custom romantic text */
-  STEPS[0] = {
-    password: PASSWORDS[0],
-    video: "videos/chapitre1.mp4",
-    text: "September 2, 2023, the day two souls met, and the quiet beginning of everything we were meant to become.",
-  };
-
-  /* Chapter 2: photo + custom text */
-  STEPS[1] = {
-    password: PASSWORDS[1],
-    image: "images/chapitre2.jpg",
-    text: "From our first texts...",
-  };
-
-  /* Chapter 3: photo + custom text */
-  STEPS[2] = {
-    password: PASSWORDS[2],
-    image: "images/chapitre3.jpg",
-    text: "To our first dates...",
-  };
-
-  /* Chapter 4: photo + custom text */
-  STEPS[3] = {
-    password: PASSWORDS[3],
-    image: "images/chapitre4.jpg",
-    text: "To our first international trip!",
-  };
-
-  /* Chapter 5: photo + custom text */
-  STEPS[4] = {
-    password: PASSWORDS[4],
-    image: "images/chapitre5.jpg",
-    text: "Keeping the magic that struck us at the Magic Lake.",
-  };
-
-  
   /* Chapter 6: photo + custom text */
   STEPS[5] = {
     password: PASSWORDS[5],
     image: "images/chapitre6.jpg",
     text: "Falling in love more and more each day.",
-  };
-
-  /* Chapter 7: photo + custom text */
-  STEPS[6] = {
-    password: PASSWORDS[6],
-    video: "videos/chapitre7.mp4",
-    text: "Closing one year and welcoming the next, always side by side.",
   };
 
   /* Chapter 8: photo + custom text */
@@ -428,12 +409,24 @@
     text: "Building her Parisian style from scratch.",
   };
 
-  /* Chapter 10: photo + custom text */
-  STEPS[9] = {
-    password: PASSWORDS[7],
-    image: "images/chapitre10.jpg",
-    text: "Building her Parisian style from scratch.",
+  /* Chapter 11: Interactive Asia Map */
+  STEPS[10] = {
+    password: PASSWORDS[10],
+    type: "map",
+    text: "Across Asia together, one stop at a time.",
+    stops: [
+      { city: "Bangkok",          country: "Thailand",  coords: [13.7563, 100.5018] },
+      { city: "Surat Thani",      country: "Thailand",  coords: [9.1382, 99.3217] },
+      { city: "Koh Tao",          country: "Thailand",  coords: [10.0956, 99.8404] },
+      { city: "Hanoi",            country: "Vietnam",   coords: [21.0285, 105.8542] },
+      { city: "Ho Chi Minh City", country: "Vietnam",   coords: [10.8231, 106.6297] },
+      { city: "Bali",             country: "Indonesia", coords: [-8.4095, 115.1889] },
+      { city: "Muscat",           country: "Oman",      coords: [23.5880, 58.3829] },
+      { city: "Dubai",            country: "UAE",       coords: [25.2048, 55.2708] },
+    ],
   };
+
+  /* Choices shown after the epilogue (placeholders for now) */
   const CHOICES = [
     { city: "Lisbon",       country: "Portugal",  coord: "38.72° N · 9.14° W",
       image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Lisbon_%2836831596786%29_%28cropped%29.jpg/1280px-Lisbon_%2836831596786%29_%28cropped%29.jpg" },
@@ -473,10 +466,10 @@
     b.innerHTML = `<span>${roman(i + 1)}</span>`;
     b.title = `Chapter ${roman(i + 1)}`;
     b.addEventListener("click", () => {
-      if (i > solved) return;                               // not unlocked yet
-      if (i === current && !panel.dataset.final) return;    // already on this chapter
-      if (modal.classList.contains("open")) closeModal(false);
-      travel(i);                                            // go back to that chapter
+      if (i > solved) return;
+      if (i === current && !panel.dataset.final) return;
+      if (modal.classList.contains("open")) modal.classList.remove("open");
+      travel(i);
     });
     frise.appendChild(b);
     return b;
@@ -623,32 +616,65 @@
     }, 1800);
   }
 
-  /* ============ Plate (image / video) ============ */
-  const modal = $("modal"),
-        modalImg = $("modal-img"),
-        modalVideo = $("modal-video"),
-        modalBtn = $("modal-btn");
+  /* ============ Plate (image & interactive map) ============ */
+  const modal = $("modal"), modalImg = $("modal-img"), modalBtn = $("modal-btn");
   let modalFor = null;
+  let asiaMap = null, mapLayers = [], mapStep = 0;
+
+  function initAsiaMap(stops) {
+    if (!asiaMap) {
+      asiaMap = L.map("modal-map", { zoomControl: false, attributionControl: false });
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+        maxZoom: 18
+      }).addTo(asiaMap);
+    }
+    mapLayers.forEach(l => asiaMap.removeLayer(l));
+    mapLayers = [];
+    mapStep = 0;
+
+    const showStop = (idx) => {
+      const s = stops[idx];
+      const icon = L.divIcon({ className: "map-dot", iconSize: [12, 12], iconAnchor: [6, 6] });
+      const marker = L.marker(s.coords, { icon }).addTo(asiaMap)
+        .bindTooltip(`${roman(idx + 1)}. ${s.city}`, { direction: "top", offset: [0, -8] });
+      mapLayers.push(marker);
+
+      if (idx > 0) {
+        const line = L.polyline([stops[idx - 1].coords, s.coords], {
+          color: "#7b2230", weight: 2, dashArray: "5, 6", opacity: 0.85
+        }).addTo(asiaMap);
+        mapLayers.push(line);
+      }
+
+      asiaMap.flyTo(s.coords, idx === 0 ? 6 : 7, { duration: 1.4 });
+      $("map-step-label").textContent = `Stop ${roman(idx + 1)} of ${roman(stops.length)}`;
+      $("map-city-name").textContent = `${s.city}, ${s.country}`;
+      $("map-next").style.display = idx < stops.length - 1 ? "inline-flex" : "none";
+    };
+
+    $("map-next").onclick = () => { if (mapStep < stops.length - 1) showStop(++mapStep); };
+    $("map-replay").onclick = () => initAsiaMap(stops);
+
+    setTimeout(() => {
+      asiaMap.invalidateSize();
+      showStop(0);
+    }, 350);
+  }
 
   function openModal(i) {
     modalFor = i;
     const step = STEPS[i];
+    const isMap = step.type === "map";
 
-    if (step.video) {
-      modalImg.style.display = "none";
-      modalVideo.style.display = "block";
-      modalVideo.src = step.video;
-      modalVideo.currentTime = 0;
-      modalVideo.play().catch(() => {});
-    } else {
-      modalVideo.pause();
-      modalVideo.style.display = "none";
-      modalImg.style.display = "block";
+    $("modal-img-wrap").style.display = isMap ? "none" : "block";
+    $("modal-map-wrap").classList.toggle("active", isMap);
+
+    if (!isMap) {
       modalImg.src = step.image;
       modalImg.alt = `Chapter ${i + 1}`;
     }
 
-    $("modal-tag").textContent = `Plate ${roman(i + 1)}`;
+    $("modal-tag").textContent = isMap ? `Atlas ${roman(i + 1)}` : `Plate ${roman(i + 1)}`;
     $("modal-cap").textContent = `Chapter ${word(i + 1)}`;
     $("modal-text").textContent = step.text || "";
     const isLast = i === N - 1;
@@ -657,11 +683,12 @@
       : `Turn the page ${arrow}`;
     modal.classList.remove("open"); void modal.offsetWidth;
     modal.classList.add("open");
+
+    if (isMap) initAsiaMap(step.stops);
     modalBtn.focus();
   }
 
   function closeModal(advance) {
-    modalVideo.pause();
     modal.classList.remove("open");
     if (!advance || modalFor === null) return;
     const i = modalFor;
