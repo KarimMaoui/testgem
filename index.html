@@ -216,7 +216,7 @@
     opacity: 0;
     transition: transform .6s var(--out), opacity .4s, background .3s, border-color .3s;
   }
-  .node::before { content: ""; position: absolute; inset: -14px -14px -30px; } /* click area */
+  .node::before { content: ""; position: absolute; inset: -14px -14px -30px; } /* bigger click area, includes the numeral */
   .node.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   .node.solved { background: var(--ink); }
   .node.current { background: var(--accent); border-color: var(--accent); transform: translate(-50%, -50%) scale(1.6); }
@@ -232,7 +232,7 @@
   .node.visible:hover { transform: translate(-50%, -50%) scale(1.5); border-color: var(--accent); }
   .node.current:hover { transform: translate(-50%, -50%) scale(1.6); }
 
-  /* ---------- Plate (image pop-up) ---------- */
+  /* ---------- Plate (image / video / map pop-up) ---------- */
   .modal {
     position: fixed; inset: 0; z-index: 30;
     display: grid; place-items: center;
@@ -249,9 +249,19 @@
     transition: transform .9s var(--out), opacity .6s;
   }
   .modal.open .holo { transform: none; opacity: 1; }
-  .img-wrap { position: relative; overflow: hidden; background: var(--paper-2); }
-  .img-wrap img { display: block; width: 100%; max-height: 50vh; object-fit: cover; }
-  .modal.open .img-wrap img { animation: reveal 1.4s var(--out) .15s both; }
+  .img-wrap { position: relative; overflow: hidden; background: transparent; }
+  .img-wrap img,
+  .img-wrap video {
+    display: block;
+    max-width: 100%;
+    max-height: 58vh;
+    width: auto;
+    height: auto;
+    margin: 0 auto;
+    object-fit: contain;
+  }
+  .modal.open .img-wrap img,
+  .modal.open .img-wrap video { animation: reveal 1.4s var(--out) .15s both; }
   @keyframes reveal {
     from { clip-path: inset(0 100% 0 0); transform: scale(1.05); }
     to   { clip-path: inset(0 0 0 0); transform: none; }
@@ -343,7 +353,11 @@
 
 <div class="modal" id="modal" role="dialog" aria-modal="true">
   <figure class="holo">
-    <div class="img-wrap" id="modal-img-wrap"><img id="modal-img" alt=""><div class="beam"></div></div>
+    <div class="img-wrap" id="modal-img-wrap">
+      <img id="modal-img" alt="">
+      <video id="modal-video" controls playsinline></video>
+      <div class="beam"></div>
+    </div>
     <div class="map-wrap" id="modal-map-wrap">
       <div id="modal-map"></div>
       <div class="map-bar">
@@ -368,8 +382,8 @@
 
 <script>
   /* =========================================================
-     CONFIGURATION — edit the passwords, images and texts here.
-     image: URL or local path (e.g. "images/chapitre6.jpg")
+     CONFIGURATION — edit the passwords, images and videos here.
+     image / video: URL or local path (e.g. "videos/chapitre1.mp4")
      ========================================================= */
   const PASSWORDS = [
     "Egypt",
@@ -377,12 +391,12 @@
     "Memories",
     "Planes",
     "Magician",
+    "Loving",
     "Sacha",
     "Stylist",
     "Paulinal Paulinus",
     "Tower",
     "Yellow fever",
-    "test",
     "test",
     "test",
     "test",
@@ -395,6 +409,41 @@
     text: `Description of the photo for chapter ${i + 1}. Replace this with your own words.`,
   }));
 
+  /* Chapter 1: video + custom romantic text */
+  STEPS[0] = {
+    password: PASSWORDS[0],
+    video: "videos/chapitre1.mp4",
+    text: "September 2, 2023, the day two souls met, and the quiet beginning of everything we were meant to become.",
+  };
+
+  /* Chapter 2: photo + custom text */
+  STEPS[1] = {
+    password: PASSWORDS[1],
+    image: "images/chapitre2.jpg",
+    text: "From our first texts...",
+  };
+
+  /* Chapter 3: photo + custom text */
+  STEPS[2] = {
+    password: PASSWORDS[2],
+    image: "images/chapitre3.jpg",
+    text: "To our first dates...",
+  };
+
+  /* Chapter 4: photo + custom text */
+  STEPS[3] = {
+    password: PASSWORDS[3],
+    image: "images/chapitre4.jpg",
+    text: "To our first international trip!",
+  };
+
+  /* Chapter 5: photo + custom text */
+  STEPS[4] = {
+    password: PASSWORDS[4],
+    image: "images/chapitre5.jpg",
+    text: "Keeping the magic that struck us at the Magic Lake.",
+  };
+
   /* Chapter 6: photo + custom text */
   STEPS[5] = {
     password: PASSWORDS[5],
@@ -402,10 +451,24 @@
     text: "Falling in love more and more each day.",
   };
 
+  /* Chapter 7: video + custom text */
+  STEPS[6] = {
+    password: PASSWORDS[6],
+    video: "videos/chapitre7.mp4",
+    text: "Closing one year and welcoming the next, always side by side.",
+  };
+
   /* Chapter 8: photo + custom text */
   STEPS[7] = {
     password: PASSWORDS[7],
     image: "images/chapitre8.jpg",
+    text: "Building her Parisian style from scratch.",
+  };
+
+  /* Chapter 10: photo + custom text */
+  STEPS[9] = {
+    password: PASSWORDS[9],
+    image: "images/chapitre10.jpg",
     text: "Building her Parisian style from scratch.",
   };
 
@@ -426,7 +489,6 @@
     ],
   };
 
-  /* Choices shown after the epilogue (placeholders for now) */
   const CHOICES = [
     { city: "Lisbon",       country: "Portugal",  coord: "38.72° N · 9.14° W",
       image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Lisbon_%2836831596786%29_%28cropped%29.jpg/1280px-Lisbon_%2836831596786%29_%28cropped%29.jpg" },
@@ -468,7 +530,7 @@
     b.addEventListener("click", () => {
       if (i > solved) return;
       if (i === current && !panel.dataset.final) return;
-      if (modal.classList.contains("open")) modal.classList.remove("open");
+      if (modal.classList.contains("open")) closeModal(false);
       travel(i);
     });
     frise.appendChild(b);
@@ -616,8 +678,11 @@
     }, 1800);
   }
 
-  /* ============ Plate (image & interactive map) ============ */
-  const modal = $("modal"), modalImg = $("modal-img"), modalBtn = $("modal-btn");
+  /* ============ Plate (image / video / interactive map) ============ */
+  const modal = $("modal"),
+        modalImg = $("modal-img"),
+        modalVideo = $("modal-video"),
+        modalBtn = $("modal-btn");
   let modalFor = null;
   let asiaMap = null, mapLayers = [], mapStep = 0;
 
@@ -669,7 +734,18 @@
     $("modal-img-wrap").style.display = isMap ? "none" : "block";
     $("modal-map-wrap").classList.toggle("active", isMap);
 
-    if (!isMap) {
+    if (isMap) {
+      modalVideo.pause();
+    } else if (step.video) {
+      modalImg.style.display = "none";
+      modalVideo.style.display = "block";
+      modalVideo.src = step.video;
+      modalVideo.currentTime = 0;
+      modalVideo.play().catch(() => {});
+    } else {
+      modalVideo.pause();
+      modalVideo.style.display = "none";
+      modalImg.style.display = "block";
       modalImg.src = step.image;
       modalImg.alt = `Chapter ${i + 1}`;
     }
@@ -689,6 +765,7 @@
   }
 
   function closeModal(advance) {
+    modalVideo.pause();
     modal.classList.remove("open");
     if (!advance || modalFor === null) return;
     const i = modalFor;
